@@ -11,8 +11,15 @@ $ cd gcc-python-plugin
 $ make PYTHON=python3 PYTHON_CONFIG=python3-config
 ```
 
-Then go into your pacemaker source tree and apply the following (changing the paths,
-obviously):
+You will also need my forked pacemaker repo:
+
+```
+$ git clone https://github.com/clumens/pacemaker/tree/fosa
+```
+
+There are two parts to this process.  The first part scans the source tree for specially
+marked functions and puts those into a data file.  Go into the cloned pacemaker source
+tree and apply the following (changing the paths, obviously):
 
 ```
 diff --git a/configure.ac b/configure.ac
@@ -24,12 +31,18 @@ index bd92b803f..7088ff565 100644
      CFLAGS="$CFLAGS $WERROR"
  fi
 +
-+CFLAGS="$CFLAGS -fplugin=/home/clumens/src/gcc-python-plugin/python.so -fplugin-arg-python-script=/home/clumens/src/fosa/check-args.py"
++CFLAGS="$CFLAGS -fplugin=/home/clumens/src/gcc-python-plugin/python.so -fplugin-arg-python-script=/home/clumens/src/fosa/find-messages.py -fplugin-arg-python-messages=/home/clumens/src/pacemaker/fns.pickle"
 +
  AC_SUBST(CFLAGS)
  
  dnl This is useful for use in Makefiles that need to remove one specific flag
 ```
 
-Then just build as normal.  Any errors in message arguments will be detected and cause
-the compiler to stop, just like any other syntax error would.
+Then just build as normal.  A fns.pickle file will be written into your source directory.
+This just contains type information about all the formatted output message functions.
+
+The second part takes that type information, looks for where formatted output messages
+are called, and verifies they are called with the right number and kind of arguments.
+Clean the source tree, change the `-fplugin-arg-python-script` argument to be
+`check-args.py`, and rebuild.  Any errors in message arguments will be detected and
+cause the compiler to stop, just like any other syntax error would.

@@ -1,28 +1,9 @@
 import gcc
 import gccutils
+import pickle
+import sys
 
-# -fplugin=/home/clumens/src/gcc-python-plugin/python.so -fplugin-arg-python-script=/home/clumens/src/check-args.py
-
-messages = { "ban":              ["struct pe_node_t *", "struct pe__location_t *", "unsigned int"],
-             "bundle":           ["unsigned int", "struct pe_resource_t *"],
-             "clone":            ["unsigned int", "struct pe_resource_t *"],
-             "cluster-counts":   ["unsigned int", "int", "int", "int"],
-             "cluster-dc":       ["struct node_t *", "const char *", "const char *", "char *"],
-             "cluster-options":  ["struct pe_working_set_t *"],
-             "cluster-stack":    ["const char *"],
-             "cluster-times":    ["const char *", "const char *", "const char *", "const char *"],
-             "failed-action":    ["xmlNodePtr"],
-             "group":            ["unsigned int", "struct pe_resource_t *"],
-             "last-fenced":      ["const char *", "time_t"],
-             "node":             ["struct node_t *", "unsigned int", "gboolean", "const char *"],
-             "node-attribute":   ["const char *", "const char *", "gboolean", "int"],
-             "op-history":       ["struct xmlNode *", "const char *", "const char *", "int", "unsigned int"],
-             "primitive":        ["unsigned int", "struct pe_resource_t *"],
-             "resource-history": ["struct resource_t *", "const char *", "gboolean", "int", "time_t"],
-             "stonith-event":    ["struct stonith_history_t *", "unsigned int", "gboolean"],
-             "ticket":           ["struct ticket_t *"],
-             "validate":         ["const char *", "const char *", "char *", "char *", "int"],
-           }
+registeredMessages = {}
 
 def type_alias(t):
     if t == "gboolean":
@@ -41,7 +22,7 @@ def is_pointer_type(t):
     return t.endswith(" *")
 
 def check_arg_count(stmt, messageName):
-    entry = messages[messageName]
+    entry = registeredMessages[messageName]
 
     if len(stmt.args) != len(entry) + 2:
         gcc.error(stmt.loc, "Expected %d arguments to message %s, but got %d" %
@@ -51,7 +32,7 @@ def check_arg_count(stmt, messageName):
     return True
 
 def check_arg_types(stmt, messageName):
-    entry = messages[messageName]
+    entry = registeredMessages[messageName]
 
     for i in range(0, len(entry)):
         arg = stmt.args[i+2]
@@ -139,7 +120,7 @@ def find_function_calls(p, fn):
                 # for the message name.  That's easy.
                 messageName = str(stmt.args[1]).replace('"', '')
 
-                if messageName not in messages:
+                if messageName not in registeredMessages:
                     gcc.error(stmt.loc, "Unknown format message: %s" % messageName)
                     continue
 
@@ -150,5 +131,15 @@ def find_function_calls(p, fn):
 
                 # Check that the types are as expected.
                 check_arg_types(stmt, messageName)
+
+if "messages" not in gcc.argument_dict:
+    print("-fplugin-arg-python-messages= argument is missing")
+    sys.exit(1)
+
+try:
+    with open(gcc.argument_dict["messages"], "rb") as f:
+        registeredMessages = pickle.load(f)
+except FileNotFoundError:
+    registeredMessages = {}
 
 gcc.register_callback(gcc.PLUGIN_PASS_EXECUTION, find_function_calls)

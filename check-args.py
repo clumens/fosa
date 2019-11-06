@@ -51,6 +51,13 @@ def check_arg_types(stmt, messageName):
             if isinstance(arg, gcc.IntegerCst) and arg.constant == 0 and is_pointer_type(expectedTy):
                 return True
 
+            # We were given a "void *" but expected some other kind of pointer.
+            # That should be fine.
+            # FIXME:  But really, there should be some way of seeing if there's
+            # a cast involved and check that if so.
+            if isinstance(arg.type, gcc.PointerType) and isinstance(arg.type.dereference, gcc.VoidType) and is_pointer_type(expectedTy):
+                return True
+
             gcc.error(stmt.loc, "Expected '%s', but got '%s' in argument %d" % (expectedTy, givenTy, i+3))
             return False
 

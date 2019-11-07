@@ -21,6 +21,9 @@ def is_integer_type(t):
 def is_pointer_type(t):
     return t.endswith(" *")
 
+def message_from_fn_call(arg):
+    return arg.def_stmt.fndecl.name in ["crm_element_name", "crm_map_element_name"]
+
 def check_arg_count(stmt, messageName):
     entry = registeredMessages[messageName]
 
@@ -104,10 +107,10 @@ def find_function_calls(p, fn):
             if len(stmt.args) < 2:
                 continue
 
-            if isinstance(stmt.args[1], gcc.SsaName) and stmt.args[1].def_stmt.fndecl.name == "crm_element_name":
+            if isinstance(stmt.args[1], gcc.SsaName) and message_from_fn_call(stmt.args[1]):
                 # This is a call to the message function that figures out the message
-                # name by calling crm_element_name().  We can't figure out exactly
-                # which message will be called at compile time, but it's almost certainly
+                # name by calling some function.  We can't figure out exactly which
+                # message will be called at compile time, but it's almost certainly
                 # going to be one of these four.  Iterate over each and check.  They
                 # should all have the same arguments.
                 for messageName in ["bundle", "clone", "group", "primitive"]:

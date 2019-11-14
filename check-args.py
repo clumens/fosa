@@ -114,6 +114,10 @@ def find_function_calls(p, fn):
                 # going to be one of these four.  Iterate over each and check.  They
                 # should all have the same arguments.
                 for messageName in ["bundle", "clone", "group", "primitive"]:
+                    if messageName not in registeredMessages:
+                        gcc.error(stmt.loc, "Message not registered: %s" % messageName)
+                        break
+
                     if not check_arg_count(stmt, messageName):
                         break
 

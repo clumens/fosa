@@ -22,7 +22,7 @@ def output_args_cb(fn, messageName, *args):
 
 def register_attributes():
     gcc.register_attribute("output_args", 1, -1, False, False, False, output_args_cb)
-    gcc.define_macro("WITH_ATTRIBUTE_OUTPUT_ARGS")
+    gcc.define_macro("PCMK__WITH_ATTRIBUTE_OUTPUT_ARGS")
 
 if "messages" not in gcc.argument_dict:
     print("-fplugin-arg-python-messages= argument is missing")

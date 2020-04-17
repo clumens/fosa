@@ -11,12 +11,6 @@ $ cd gcc-python-plugin
 $ make PYTHON=python3 PYTHON_CONFIG=python3-config
 ```
 
-You will also need my forked pacemaker repo:
-
-```
-$ git clone https://github.com/clumens/pacemaker/tree/fosa
-```
-
 There are two parts to this process.  The first part scans the source tree for specially
 marked functions and puts those into a data file.  Go into the cloned pacemaker source
 tree and apply the following (changing the paths, obviously):

@@ -14,6 +14,21 @@ def type_alias(t):
         return "struct xmlNode *"
     elif t == "GListPtr":
         return "struct GList *"
+
+    # FIXME:  How to figure out these typedefs automatically?
+    elif t == "pe__location_t *":
+        return "struct pe__location_t *"
+    elif t == "pe_node_t *":
+        return "struct pe_node_t *"
+    elif t == "pe_resource_t *":
+        return "struct pe_resource_t *"
+    elif t == "pe_ticket_t *":
+        return "struct pe_ticket_t *"
+    elif t == "pe_working_set_t *":
+        return "struct pe_working_set_t *"
+    elif t == "stonith_history_t *":
+        return "struct stonith_history_t *"
+
     else:
         return t
 

@@ -14,6 +14,8 @@ def type_alias(t):
         return "struct xmlNode *"
     elif t == "GListPtr":
         return "struct GList *"
+    elif t == "long long unsigned int":
+        return "unsigned long long int"
 
     # FIXME:  How to figure out these typedefs automatically?
     elif t == "pe__location_t *":
@@ -33,7 +35,7 @@ def type_alias(t):
         return t
 
 def is_integer_type(t):
-    return t in ["int", "unsigned int", "long", "unsigned long"]
+    return t in ["int", "unsigned int", "long", "unsigned long", "unsigned long long"]
 
 def is_pointer_type(t):
     return t.endswith(" *")

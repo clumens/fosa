@@ -12,6 +12,8 @@ def type_alias(t):
         return "long int"
     elif t == "xmlNodePtr":
         return "struct xmlNode *"
+    elif t == "GList *":
+        return "struct GList *"
     elif t == "long long unsigned int":
         return "unsigned long long int"
 

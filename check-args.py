@@ -8,18 +8,36 @@ registeredMessages = {}
 def type_alias(t):
     if t == "gboolean":
         return "int"
+    elif t == "guint":
+        return "unsigned int"
     elif t == "time_t":
         return "long int"
     elif t == "xmlNodePtr":
         return "struct xmlNode *"
+    elif t == "GHashTable *":
+        return "struct GHashTable *"
     elif t == "GList *":
         return "struct GList *"
     elif t == "long long unsigned int":
         return "unsigned long long int"
 
+    # FIXME: I'm not sure this is right
+    elif t.startswith("char["):
+        return "char *"
+    elif t.startswith("const char["):
+        return "const char *"
+
     # FIXME:  How to figure out these typedefs automatically?
+    elif t == "cib_t *":
+        return "struct cib_t *"
+    elif t == "lrmd_list_t *":
+        return "struct lrmd_list_t *"
+    elif t == "op_digest_cache_t *":
+        return "struct op_digest_cache_t *"
     elif t == "pe__location_t *":
         return "struct pe__location_t *"
+    elif t == "pe_action_t *":
+        return "struct pe_action_t *"
     elif t == "pe_node_t *":
         return "struct pe_node_t *"
     elif t == "pe_resource_t *":
@@ -28,6 +46,8 @@ def type_alias(t):
         return "struct pe_ticket_t *"
     elif t == "pe_working_set_t *":
         return "struct pe_working_set_t *"
+    elif t == "resource_checks_t *":
+        return "struct resource_checks_t *"
     elif t == "stonith_history_t *":
         return "struct stonith_history_t *"
 

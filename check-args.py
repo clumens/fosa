@@ -30,6 +30,8 @@ def type_alias(t):
     # FIXME:  How to figure out these typedefs automatically?
     elif t == "cib_t *":
         return "struct cib_t *"
+    elif t == "crm_exit_t":
+        return "crm_exit_e"
     elif t == "lrmd_list_t *":
         return "struct lrmd_list_t *"
     elif t == "op_digest_cache_t *":

@@ -90,6 +90,11 @@ def check_arg_types(stmt, messageName):
             if isinstance(arg, gcc.IntegerCst) and is_integer_type(expectedTy):
                 return True
 
+            # FIXME: This is happening in crm_mon and I can't figure out why it
+            # doesn't understand the uint32_t is right.
+            if expectedTy == "uint32_t" and givenTy == "unsigned int":
+                return True
+
             # An integer constant of 0 where a pointer is expected is likely a
             # NULL.  That works for all pointer types, so skip the error.
             if isinstance(arg, gcc.IntegerCst) and arg.constant == 0 and is_pointer_type(expectedTy):

@@ -57,7 +57,7 @@ def type_alias(t):
         return t
 
 def is_integer_type(t):
-    return t in ["int", "unsigned int", "long", "unsigned long", "unsigned long long"]
+    return t in ["int", "unsigned int", "long", "unsigned long", "unsigned long long", "uint32_t"]
 
 def is_pointer_type(t):
     return t.endswith(" *")

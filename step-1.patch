@@ -1,13 +1,13 @@
 diff --git a/configure.ac b/configure.ac
-index 95adcffb6..fbb792e2d 100644
+index 6b837407e..cb3ef9dea 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -1846,6 +1846,9 @@ AS_IF([test $enable_fatal_warnings -ne $DISABLED], [
+@@ -1969,6 +1969,9 @@ AS_IF([test $enable_fatal_warnings -ne $DISABLED], [
      AC_MSG_NOTICE([Enabling fatal compiler warnings])
      CFLAGS="$CFLAGS $WERROR"
  ])
 +
-+CFLAGS="$CFLAGS -fplugin=/home/clumens/src/gcc-python-plugin/python.so -fplugin-arg-python-script=/home/clumens/src/fosa/find-messages.py -fplugin-arg-python-messages=/home/clumens/src/pacemaker/fns.pickle"
++CFLAGS="$CFLAGS -fplugin=python -fplugin-arg-python-script=/home/clumens/src/fosa/find-messages.py -fplugin-arg-python-messages=/home/clumens/src/pacemaker/fns.pickle"
 +
  AC_SUBST(CFLAGS)
  

@@ -27,7 +27,7 @@ def type_alias(t):
     elif t.startswith("const char["):
         return "const char *"
 
-    # FIXME:  How to figure out these typedefs automatically?
+    # FIXME:  How to figure out these automatically?
     elif t == "cib_t *":
         return "struct cib_t *"
     elif t == "crm_exit_t":
@@ -52,6 +52,9 @@ def type_alias(t):
         return "struct resource_checks_t *"
     elif t == "stonith_history_t *":
         return "struct stonith_history_t *"
+
+    elif t == "pcmk__fence_history":
+        return "enum pcmk__fence_history"
 
     else:
         return t

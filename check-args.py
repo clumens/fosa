@@ -6,8 +6,8 @@ import sys
 registeredMessages = {}
 
 def type_alias(t):
-    if t == "gboolean":
-        return "int"
+    if t == "gchar *":
+        return "char *"
     elif t == "guint":
         return "unsigned int"
     elif t == "time_t":
@@ -91,6 +91,13 @@ def check_arg_types(stmt, messageName):
             # An integer literal works for any kind of expected integer type,
             # regardless of if we're expecting signed or not.
             if isinstance(arg, gcc.IntegerCst) and is_integer_type(expectedTy):
+                return True
+
+            # It would be nice to check for bool vs. gboolean, or even bool vs. TRUE/FALSE,
+            # but there's no way to do so.  By the time this plugin gets run, all those
+            # typedefs and defines have been resolved into their real types so everything
+            # just looks like some numeric type.
+            if expectedTy == "bool" and is_integer_type(givenTy):
                 return True
 
             # FIXME: This is happening in crm_mon and I can't figure out why it

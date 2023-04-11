@@ -1,5 +1,4 @@
 import gcc
-import gccutils
 import pickle
 import sys
 

@@ -4,59 +4,65 @@ import sys
 
 registeredMessages = {}
 
-def type_alias(t):
-    if t == "gchar *":
-        return "char *"
-    elif t == "guint":
-        return "unsigned int"
-    elif t == "time_t":
-        return "long int"
-    elif t == "xmlNodePtr":
-        return "struct xmlNode *"
-    elif t == "GHashTable *":
-        return "struct GHashTable *"
-    elif t == "GList *":
-        return "struct GList *"
-    elif t == "long long unsigned int":
-        return "unsigned long long int"
+basicTypeMap = {
+    "long long unsigned int":   "unsigned long long int",
+}
 
+glibTypeMap = {
+    "GHashTable *":             "struct GHashTable *",
+    "GList *":                  "struct GList *",
+    "gchar *":                  "char *",
+    "guint":                    "unsigned int",
+}
+
+miscTypeMap = {
+    "xmlNodePtr":               "struct xmlNode *",
+}
+
+pcmkTypeMap = {
+    "cib_t *":                  "struct cib_t *",
+    "crm_exit_t":               "crm_exit_e",
+    "lrmd_list_t *":            "struct lrmd_list_t *",
+    "op_digest_cache_t *":      "struct op_digest_cache_t *",
+    "pcmk__fence_history":      "enum pcmk__fence_history",
+    "pcmk_pacemakerd_state":    "enum pcmk_pacemakerd_state",
+    "pe__location_t *":         "struct pe__location_t *",
+    "pe_action_t *":            "struct pe_action_t *",
+    "pe_node_t *":              "struct pe_node_t *",
+    "pe_resource_t *":          "struct pe_resource_t *",
+    "pe_ticket_t *":            "struct pe_ticket_t *",
+    "pe_working_set_t *":       "struct pe_working_set_t *",
+    "resource_checks_t *":      "struct resource_checks_t *",
+    "stonith_history_t *":      "struct stonith_history_t *",
+}
+
+def type_alias(t):
     # FIXME: I'm not sure this is right
-    elif t.startswith("char["):
+    if t.startswith("char["):
         return "char *"
-    elif t.startswith("const char["):
+
+    if t.startswith("const char["):
         return "const char *"
 
-    # FIXME:  How to figure out these automatically?
-    elif t == "cib_t *":
-        return "struct cib_t *"
-    elif t == "crm_exit_t":
-        return "crm_exit_e"
-    elif t == "lrmd_list_t *":
-        return "struct lrmd_list_t *"
-    elif t == "op_digest_cache_t *":
-        return "struct op_digest_cache_t *"
-    elif t == "pe__location_t *":
-        return "struct pe__location_t *"
-    elif t == "pe_action_t *":
-        return "struct pe_action_t *"
-    elif t == "pe_node_t *":
-        return "struct pe_node_t *"
-    elif t == "pe_resource_t *":
-        return "struct pe_resource_t *"
-    elif t == "pe_ticket_t *":
-        return "struct pe_ticket_t *"
-    elif t == "pe_working_set_t *":
-        return "struct pe_working_set_t *"
-    elif t == "resource_checks_t *":
-        return "struct resource_checks_t *"
-    elif t == "stonith_history_t *":
-        return "struct stonith_history_t *"
+    if t in basicTypeMap:
+        return basicTypeMap[t]
 
-    elif t == "pcmk__fence_history":
-        return "enum pcmk__fence_history"
+    if t in glibTypeMap:
+        return glibTypeMap[t]
 
-    else:
-        return t
+    if t in miscTypeMap:
+        return miscTypeMap[t]
+
+    if t in pcmkTypeMap:
+        return pcmkTypeMap[t]
+
+    if t.startswith("const "):
+        # Strip off "const " from the front of the type and look up if there's
+        # an alias for it in any of the maps.  But then put "const " back on
+        # afterwards so we are comparing the right things in check_arg_types.
+        return "const %s" % type_alias(t.removeprefix("const "))
+
+    return t
 
 def is_integer_type(t):
     return t in ["int", "unsigned int", "long", "unsigned long", "unsigned long long", "uint32_t"]
@@ -86,35 +92,32 @@ def check_arg_types(stmt, messageName):
         expectedTy = entry[i]
         givenTy    = str(arg.type)
 
-        if type_alias(expectedTy) != type_alias(givenTy):
-            # An integer literal works for any kind of expected integer type,
-            # regardless of if we're expecting signed or not.
-            if isinstance(arg, gcc.IntegerCst) and is_integer_type(expectedTy):
-                return True
+        aliasedExpectedTy = type_alias(expectedTy)
+        aliasedGivenTy = type_alias(givenTy)
 
-            # It would be nice to check for bool vs. gboolean, or even bool vs. TRUE/FALSE,
-            # but there's no way to do so.  By the time this plugin gets run, all those
-            # typedefs and defines have been resolved into their real types so everything
-            # just looks like some numeric type.
-            if expectedTy == "bool" and is_integer_type(givenTy):
-                return True
+        # If the types are the same, obviously that is fine.
+        if aliasedExpectedTy == aliasedGivenTy:
+            return True
 
-            # FIXME: This is happening in crm_mon and I can't figure out why it
-            # doesn't understand the uint32_t is right.
-            if expectedTy == "uint32_t" and givenTy == "unsigned int":
-                return True
+        # If we were given a type but expected a const of the same type,
+        # that's fine.
+        if aliasedExpectedTy == "const %s" % aliasedGivenTy:
+            return True
 
-            # We were given a "void *" but expected some other kind of pointer.
-            # That should be fine.
-            # FIXME:  But really, there should be some way of seeing if there's
-            # a cast involved and check that if so.
-            if isinstance(arg.type, gcc.PointerType) and isinstance(arg.type.dereference, gcc.VoidType) and is_pointer_type(expectedTy):
-                return True
+        # An integer literal works for any kind of expected integer type,
+        # regardless of if we're expecting signed or not.
+        if isinstance(arg, gcc.IntegerCst) and is_integer_type(expectedTy):
+            return True
 
-            gcc.error(stmt.loc, "Expected '%s', but got '%s' in argument %d" % (expectedTy, givenTy, i+3))
-            return False
+        # We were given a "void *" but expected some other kind of pointer.
+        # That should be fine.
+        # FIXME:  But really, there should be some way of seeing if there's
+        # a cast involved and check that if so.
+        if isinstance(arg.type, gcc.PointerType) and isinstance(arg.type.dereference, gcc.VoidType) and is_pointer_type(expectedTy):
+            return True
 
-    return True
+        gcc.error(stmt.loc, "Expected '%s', but got '%s' in argument %d" % (expectedTy, givenTy, i+3))
+        return False
 
 def find_function_calls(p, fn):
     if p.name != "*warn_function_return":

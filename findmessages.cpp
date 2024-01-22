@@ -101,7 +101,7 @@ tree output_args_attr_handler(tree *node, tree name, tree args, int flags, bool 
 
     /* If the msg_map is empty, initialize it by reading in the on-disk store */
     if (msg_map.empty() && std::filesystem::exists(store)) {
-        read_store(store, msg_map);
+        read_store(store, &msg_map);
     }
 
     /* Build up a list of parameter types by moving to the next argument in the tree

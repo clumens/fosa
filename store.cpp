@@ -27,7 +27,7 @@ static std::list<std::string> split(std::string s, std::string delim) {
     return retval;
 }
 
-void read_store(char *store, msg_map_t msg_map) {
+void read_store(char *store, msg_map_t *msg_map) {
     std::string line;
     std::ifstream in(store);
 
@@ -37,7 +37,7 @@ void read_store(char *store, msg_map_t msg_map) {
         std::string msg_name = parts.front();
 
         parts.pop_front();
-        msg_map.insert({msg_name, parts});
+        msg_map->insert({msg_name, parts});
     }
 }
 

@@ -237,7 +237,6 @@ bool types_match(std::string expected_ty, std::string got_ty) {
 }
 
 void check_arg_types(param_list_t expected_params, gimple *stmt) {
-    unsigned int num_args = gimple_call_num_args(stmt);
     unsigned int n = 2;
 
     for (const auto& expected_ty : expected_params) {
@@ -376,7 +375,7 @@ void check_message(gimple *stmt, const char *msg_name) {
      */
     if (num_args != expected_params->second.size() + 2) {
         tree t = gimple_call_arg(stmt, 1);
-        error_at(EXPR_LOCATION(t), "Expected %d argument(s) to message '%s', but got %d",
+        error_at(EXPR_LOCATION(t), "Expected %ld argument(s) to message '%s', but got %d",
                  expected_params->second.size(), msg_name, num_args - 2);
         return;
     }

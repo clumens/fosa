@@ -11,6 +11,9 @@
 
 #include <cstring>
 #include <iostream>
+#include <set>
+#include <string>
+#include <unordered_map>
 
 #include "fosa.h"
 
@@ -22,7 +25,38 @@ int plugin_is_GPL_compatible;
 /* Path to the on-disk store */
 char *store = NULL;
 
+/* The on-disk formatted output message store */
 msg_map_t msg_map;
+
+/* gcc reported type -> expected type
+ *
+ * Certain things gcc gets close, but not exactly what we want.  Most of the time, this
+ * is some type where "struct" gets added.  Then there's cases like "gchar *" which is
+ * typedef'd to "char *".  This map just allows us to fix up all the close enough cases.
+ *
+ * FIXME: "type alias" means something specific in compiler land, so I should probably
+ * call this something else for clarity.
+ */
+std::unordered_map<std::string, std::string> type_aliases = {
+    { "struct GList *",             "GList *" },
+    { "struct GHashTable *",        "GHashTable *" },
+    { "crm_exit_e",                 "crm_exit_t" },
+    { "gchar *",                    "char *" },
+    { "pcmk__fence_history",        "enum pcmk__fence_history" },
+    { "pcmk_pacemakerd_state",      "enum pcmk_pacemakerd_state" },
+    { "struct lrmd_list_t *",       "lrmd_list_t *" },
+    { "struct pcmk__location_t *",  "pcmk__location_t *" },
+    { "struct pcmk__op_digest_t *", "pcmk__op_digest_t *" },
+    { "struct pcmk_action_t *",     "pcmk_action_t *" },
+    { "struct pcmk_node_t *",       "pcmk_node_t *" },
+    { "struct pcmk_resource_t *",   "pcmk_resource_t *" },
+    { "struct pcmk_scheduler_t *",  "pcmk_scheduler_t *" },
+    { "struct pcmk_ticket_t *",     "pcmk_ticket_t *" },
+    { "struct resource_checks_t *", "resource_checks_t *" },
+    { "struct stonith_history_t *", "stonith_history_t *" },
+    { "struct xmlNode *",           "xmlNode *" },
+    { "long long unsigned int",     "unsigned long long int" },
+};
 
 bool is_message_field(tree t) {
     tree name = DECL_NAME(t);
@@ -104,111 +138,71 @@ bool target_is_pcmk__output_t(tree t) {
     return strcmp(IDENTIFIER_POINTER(name), "pcmk__output_t") == 0;
 }
 
-const char *type_alias(const char *ty) {
-    if (strcmp(ty, "struct GList *") == 0) {
-        return "GList *";
-    } else if (strcmp(ty, "struct GHashTable *") == 0) {
-        return "GHashTable *";
-    } else if (strcmp(ty, "crm_exit_e") == 0) {
-        return "crm_exit_t";
-    } else if (strcmp(ty, "gchar *") == 0) {
-        return "char *";
-    } else if (strcmp(ty, "pcmk__fence_history") == 0) {
-        return "enum pcmk__fence_history";
-    } else if (strcmp(ty, "pcmk_pacemakerd_state") == 0) {
-        return "enum pcmk_pacemakerd_state";
-    } else if (strcmp(ty, "struct lrmd_list_t *") == 0) {
-        return "lrmd_list_t *";
-    } else if (strcmp(ty, "struct pcmk__location_t *") == 0) {
-        return "pcmk__location_t *";
-    } else if (strcmp(ty, "struct pcmk__op_digest_t *") == 0) {
-        return "pcmk__op_digest_t *";
-    } else if (strcmp(ty, "struct pcmk_action_t *") == 0) {
-        return "pcmk_action_t *";
-    } else if (strcmp(ty, "struct pcmk_node_t *") == 0) {
-        return "pcmk_node_t *";
-    } else if (strcmp(ty, "struct pcmk_resource_t *") == 0) {
-        return "pcmk_resource_t *";
-    } else if (strcmp(ty, "struct pcmk_scheduler_t *") == 0) {
-        return "pcmk_scheduler_t *";
-    } else if (strcmp(ty, "struct pcmk_ticket_t *") == 0) {
-        return "pcmk_ticket_t *";
-    } else if (strcmp(ty, "struct resource_checks_t *") == 0) {
-        return "resource_checks_t *";
-    } else if (strcmp(ty, "struct stonith_history_t *") == 0) {
-        return "stonith_history_t *";
-    } else if (strcmp(ty, "struct xmlNode *") == 0) {
-        return "xmlNode *";
-    } else if (strcmp(ty, "long long unsigned int") == 0) {
-        return "unsigned long long int";
-    } else {
-        return ty;
-    }
+bool expected_bool_got_int(std::string expected, std::string got) {
+    return expected == "bool" && got == "int";
 }
 
-bool expected_bool_got_int(const char *expected, const char *got) {
-    return strcmp(expected, "bool") == 0 && strcmp(got, "int") == 0;
+bool expected_char_star_got_char_bracket(std::string expected, std::string got) {
+    return expected == "char *" && got.starts_with("char[");
 }
 
-bool expected_char_star_got_char_bracket(const char *expected, const char *got) {
-    return strcmp(expected, "char *") == 0 && strncmp(got, "char[", 4) == 0;
-}
-
-bool expected_const_got_not_const(const char *expected, const char *got) {
+bool expected_const_got_not_const(std::string expected, std::string got) {
     /* FIXME: Is this really okay? */
-    if (strncmp(expected, "const ", 6) == 0) {
-        return strcmp(expected + 6, got) == 0;
+    if (expected.starts_with("const ")) {
+        return expected.substr(6) == got;
     } else {
         return false;
     }
 }
 
-bool expected_time_t_got_int(const char *expected, const char *got) {
-    return strcmp(expected, "time_t") == 0 && strcmp(got, "long int") == 0;
+bool expected_time_t_got_int(std::string expected, std::string got) {
+    return expected == "time_t" && got == "long int";
 }
 
-bool integer_types_match(const char *expected, tree got) {
+bool integer_types_match(std::string expected, tree got) {
     if (TYPE_UNSIGNED(got)) {
-        return strcmp(expected, "unsigned int") == 0 || strcmp(expected, "unsigned long") == 0 ||
-               strcmp(expected, "unsigned long long") == 0 || strncmp(expected, "uint", 4) == 0 ||
-               strcmp(expected, "guint") == 0;
+        std::set<std::string> s = {"unsigned int", "unsigned long", "unsigned long long", "guint"};
+
+        return s.contains(expected) || expected.starts_with("uint");
     } else {
-        return strcmp(expected, "int") == 0 || strcmp(expected, "long") == 0 ||
-               strcmp(expected, "long long") == 0 || strncmp(expected, "int", 3) == 0 ||
-               strcmp(expected, "gint") == 0;
+        std::set<std::string> s = {"int", "long", "long long", "gint"};
+
+        return s.contains(expected) || expected.starts_with("int");
     }
 }
 
-bool is_pointer_type(const char *t) {
-    return t[strlen(t) - 1] == '*';
+bool is_pointer_type(std::string t) {
+    return t.ends_with("*");
 }
 
 bool is_void_pointer(tree t) {
     return TREE_CODE(t) == POINTER_TYPE && TREE_CODE(TREE_TYPE(t)) == VOID_TYPE;
 }
 
-bool weird_enums_match(const char *expected, const char *got) {
-    if (strcmp(got, "int") != 0) {
+bool weird_enums_match(std::string expected, std::string got) {
+    std::set<std::string> s = {"enum shadow_disp_flags", "enum pcmk__fence_history"};
+
+    if (got != "int" ) {
         return false;
     }
 
-    if (strcmp(expected, "enum shadow_disp_flags") == 0) {
-        return true;
-    } else if (strcmp(expected, "enum pcmk__fence_history") == 0) {
-        return true;
-    }
-
-    return false;
+    return s.contains(expected);
 }
 
-bool types_match(const char *expected_ty, const char *got_ty) {
-    if (strcmp(expected_ty, got_ty) == 0) {
+bool types_match(std::string expected_ty, std::string got_ty) {
+    if (expected_ty == got_ty) {
         return true;
 
     } else {
-        const char *aliased_got_ty = type_alias(got_ty);
+        std::string aliased_got_ty;
 
-        if (strcmp(expected_ty, aliased_got_ty) == 0) {
+        if (auto search = type_aliases.find(got_ty); search != type_aliases.end()) {
+            aliased_got_ty = search->second;
+        } else {
+            aliased_got_ty = got_ty;
+        }
+
+        if (expected_ty == aliased_got_ty) {
             return true;
 
         } else if (expected_bool_got_int(expected_ty, aliased_got_ty)) {
@@ -246,14 +240,14 @@ void check_arg_types(param_list_t expected_params, gimple *stmt) {
     unsigned int num_args = gimple_call_num_args(stmt);
     unsigned int n = 2;
 
-    for (const auto& param : expected_params) {
+    for (const auto& expected_ty : expected_params) {
         tree arg_tree = gimple_call_arg(stmt, n);
         tree ty = TREE_TYPE(arg_tree);
-        char *got_ty = print_tree_to_str(ty);
-        size_t ndx;
+        std::string got_ty = print_tree_to_str(ty);
         bool match;
 
-        const char *expected_ty = param.c_str();
+        /* Remove the trailing newline that the gcc pretty printer adds. */
+        std::erase(got_ty, '\n');
 
         /* Some type checks we do early because we need to inspect the tree instead
          * of just comparing strings.
@@ -276,20 +270,14 @@ void check_arg_types(param_list_t expected_params, gimple *stmt) {
             }
         }
 
-        /* Remove the trailing newline that the gcc pretty printer adds.  I don't care
-         * about the one byte memory leak right now.
-         */
-        ndx = strcspn(got_ty, "\n");
-        got_ty[ndx] = '\0';
-
         match = types_match(expected_ty, got_ty);
         if (!match) {
             /* If the types don't match, see if they both start with "const ".
              * If so, strip that off and try the comparison again.
              */
-            if (strncmp(expected_ty, "const ", 6) == 0 && strncmp(got_ty, "const ", 6) == 0) {
-                const char *new_expected_ty = expected_ty + 6;
-                const char *new_got_ty = got_ty + 6;
+            if (expected_ty.starts_with("const ") && got_ty.starts_with("const ")) {
+                std::string new_expected_ty = expected_ty.substr(6);
+                std::string new_got_ty = got_ty.substr(6);
 
                 match = types_match(new_expected_ty, new_got_ty);
             }
@@ -298,10 +286,9 @@ void check_arg_types(param_list_t expected_params, gimple *stmt) {
         if (!match) {
             /* +1 is because params are zero-indexed, but users will start counting with 1 */
             error_at(stmt->location, "Expected '%s', but got '%s' in argument %d",
-                     expected_ty, got_ty, n+1);
+                     expected_ty.c_str(), got_ty.c_str(), n+1);
         }
 
-        free(got_ty);
         n++;
     }
 }

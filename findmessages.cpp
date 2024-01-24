@@ -67,13 +67,13 @@ std::string build_param_mismatch_err(std::string msg_name, param_list_t expected
         << "\tExpected:";
 
     for (const auto& param : expected) {
-        ret << " " << param;
+        ret << " '" << param << "'";
     }
 
     ret << "\n\tGot     :";
 
     for (const auto& param : got) {
-        ret << " " << param;
+        ret << " '" << param << "'";
     }
 
     ret << "\n";

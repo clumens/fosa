@@ -31,8 +31,8 @@ msg_map_t msg_map;
 /* gcc reported type -> expected type
  *
  * Certain things gcc gets close, but not exactly what we want.  Most of the time, this
- * is some type where "struct" gets added.  Then there's cases like "gchar *" which is
- * typedef'd to "char *".  This map just allows us to fix up all the close enough cases.
+ * is some type where "struct" gets added.  This map just allows us to fix up all the
+ * close enough cases.
  *
  * FIXME: "type alias" means something specific in compiler land, so I should probably
  * call this something else for clarity.
@@ -41,7 +41,6 @@ std::unordered_map<std::string, std::string> type_aliases = {
     { "struct GList *",             "GList *" },
     { "struct GHashTable *",        "GHashTable *" },
     { "crm_exit_e",                 "crm_exit_t" },
-    { "gchar *",                    "char *" },
     { "pcmk__fence_history",        "enum pcmk__fence_history" },
     { "pcmk_pacemakerd_state",      "enum pcmk_pacemakerd_state" },
     { "struct lrmd_list_t *",       "lrmd_list_t *" },

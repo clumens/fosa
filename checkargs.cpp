@@ -283,7 +283,7 @@ void check_arg_types(param_list_t expected_params, gimple *stmt) {
 
         if (!match) {
             /* +1 is because params are zero-indexed, but users will start counting with 1 */
-            error_at(stmt->location, "Expected '%s', but got '%s' in argument %d",
+            error_at(stmt->location, "Expected %<%s%>, but got %<%s%> in argument %d",
                      expected_ty.c_str(), got_ty.c_str(), n+1);
         }
 
@@ -374,7 +374,7 @@ void check_message(gimple *stmt, const char *msg_name) {
      */
     if (num_args != expected_params->second.size() + 2) {
         tree t = gimple_call_arg(stmt, 1);
-        error_at(EXPR_LOCATION(t), "Expected %ld argument(s) to message '%s', but got %d",
+        error_at(EXPR_LOCATION(t), "Expected %ld argument(s) to message %<%s%>, but got %d",
                  expected_params->second.size(), msg_name, num_args - 2);
         return;
     }

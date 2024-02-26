@@ -145,15 +145,6 @@ bool expected_char_star_got_char_bracket(std::string expected, std::string got) 
     return expected == "char *" && got.starts_with("char[");
 }
 
-bool expected_const_got_not_const(std::string expected, std::string got) {
-    /* FIXME: Is this really okay? */
-    if (expected.starts_with("const ")) {
-        return expected.substr(6) == got;
-    } else {
-        return false;
-    }
-}
-
 bool expected_time_t_got_int(std::string expected, std::string got) {
     return expected == "time_t" && got == "long int";
 }
@@ -212,10 +203,6 @@ bool types_match(std::string expected_ty, std::string got_ty) {
             /* Getting a "char[]" when we expect "char *" is fine. */
             return true;
 
-        } else if (expected_const_got_not_const(expected_ty, aliased_got_ty)) {
-            /* Getting a "XYZ *" when we expect "const XYZ *" is fine (I think) */
-            return true;
-
         } else if (expected_time_t_got_int(expected_ty, aliased_got_ty)) {
             /* Getting a long int when we expect a time_t is fine. */
             return true;
@@ -229,6 +216,12 @@ bool types_match(std::string expected_ty, std::string got_ty) {
              * This seems like something to fix, but how?
              */
             return true;
+
+        /* If all of the above failed, see if we expected a const but got a
+         * non-const.  That's okay.
+         */
+        if (expected_ty.starts_with("const ")) {
+            return types_match(expected_ty.substr(6), aliased_got_ty);
         }
     }
 

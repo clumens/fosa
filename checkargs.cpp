@@ -1,3 +1,11 @@
+#include <cstddef>
+#include <cstring>
+#include <iostream>
+#include <regex>
+#include <set>
+#include <string>
+#include <unordered_map>
+
 #include <gcc-plugin.h>
 #include <plugin-version.h>
 
@@ -8,12 +16,6 @@
 #include <gimple.h>
 #include <gimple-iterator.h>
 #include <gimple-pretty-print.h>
-
-#include <cstring>
-#include <iostream>
-#include <set>
-#include <string>
-#include <unordered_map>
 
 #include "fosa.h"
 
@@ -179,6 +181,12 @@ bool weird_enums_match(std::string expected, std::string got) {
     return s.contains(expected);
 }
 
+bool option_arrays_match(std::string expected, std::string got) {
+    std::regex re("^struct pcmk__cluster_option_t\\[[0-9]+\\] \\*$");
+
+    return expected == "pcmk__cluster_option_t *" && std::regex_match(got, re);
+}
+
 bool types_match(std::string expected_ty, std::string got_ty) {
     if (expected_ty == got_ty) {
         return true;
@@ -216,6 +224,15 @@ bool types_match(std::string expected_ty, std::string got_ty) {
              * This seems like something to fix, but how?
              */
             return true;
+
+        } else if (option_arrays_match(expected_ty, aliased_got_ty)) {
+            /* Option arrays can have different lengths, which is difficult to
+             * detect with the aliases, so add its own check.  Basically,
+             * pcmk__cluster_option_t[10] and pcmk__cluster_option_t[20] are the
+             * same type.
+             */
+            return true;
+        }
 
         /* If all of the above failed, see if we expected a const but got a
          * non-const.  That's okay.

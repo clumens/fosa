@@ -59,17 +59,21 @@ std::unordered_map<std::string, std::string> type_aliases = {
     { "long long unsigned int",     "unsigned long long int" },
 };
 
-char *print_tree_to_str(tree t) {
+std::string print_tree_to_str(tree t) {
     char *buf;
     size_t size;
     FILE *stream;
+    std::string retval;
 
     stream = open_memstream(&buf, &size);
     print_generic_stmt(stream, t);
     fflush(stream);
     fclose(stream);
 
-    return buf;
+    /* Remove the trailing newline that the gcc pretty printer adds. */
+    retval = buf;
+    std::erase(retval, '\n');
+    return retval;
 }
 
 bool is_message_field(tree t) {
@@ -138,7 +142,6 @@ bool message_from_var(tree t) {
     field_ty = TREE_TYPE(field);
 
     got_ty = print_tree_to_str(field_ty);
-    std::erase(got_ty, '\n');
     return valid.contains(got_ty);
 }
 
@@ -287,9 +290,6 @@ void check_arg_types(param_list_t expected_params, gimple *stmt) {
         tree ty = TREE_TYPE(arg_tree);
         std::string got_ty = print_tree_to_str(ty);
         bool match;
-
-        /* Remove the trailing newline that the gcc pretty printer adds. */
-        std::erase(got_ty, '\n');
 
         /* Some type checks we do early because we need to inspect the tree instead
          * of just comparing strings.

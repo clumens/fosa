@@ -59,6 +59,19 @@ std::unordered_map<std::string, std::string> type_aliases = {
     { "long long unsigned int",     "unsigned long long int" },
 };
 
+char *print_tree_to_str(tree t) {
+    char *buf;
+    size_t size;
+    FILE *stream;
+
+    stream = open_memstream(&buf, &size);
+    print_generic_stmt(stream, t);
+    fflush(stream);
+    fclose(stream);
+
+    return buf;
+}
+
 bool is_message_field(tree t) {
     tree name = DECL_NAME(t);
 
@@ -70,6 +83,8 @@ bool is_message_field(tree t) {
 }
 
 bool message_from_fn_call(tree t) {
+    std::set<std::string> valid = {"crm_element_name", "crm_map_element_name", "pcmk__map_element_name"};
+
     gimple *def_stmt;
     tree fn, name;
     const char *s = NULL;
@@ -92,20 +107,39 @@ bool message_from_fn_call(tree t) {
         return false;
     }
 
-    return strcmp(s, "crm_element_name") == 0 || strcmp(s, "crm_map_element_name") == 0;
+    return valid.contains(s);
 }
 
-char *print_tree_to_str(tree t) {
-    char *buf;
-    size_t size;
-    FILE *stream;
+bool message_from_var(tree t) {
+    std::set<std::string> valid = {"const xmlChar *", "const char *"};
+    std::string got_ty;
 
-    stream = open_memstream(&buf, &size);
-    print_generic_stmt(stream, t);
-    fflush(stream);
-    fclose(stream);
+    gimple *def_stmt;
+    tree var_referenced;
+    tree field, field_ty;
 
-    return buf;
+    if (TREE_CODE(t) != SSA_NAME) {
+        return false;
+    }
+
+    def_stmt = SSA_NAME_DEF_STMT(t);
+
+    if (!is_gimple_assign(def_stmt)) {
+        return false;
+    }
+
+    var_referenced = gimple_assign_rhs1(def_stmt);
+
+    if (var_referenced == NULL || TREE_CODE(var_referenced) != COMPONENT_REF) {
+        return false;
+    }
+
+    field = TREE_OPERAND(var_referenced, 1);
+    field_ty = TREE_TYPE(field);
+
+    got_ty = print_tree_to_str(field_ty);
+    std::erase(got_ty, '\n');
+    return valid.contains(got_ty);
 }
 
 const char *string_const_from_tree(tree t) {
@@ -159,7 +193,7 @@ bool integer_types_match(std::string expected, tree got) {
     } else {
         std::set<std::string> s = {"int", "long", "long long", "gint"};
 
-        return s.contains(expected) || expected.starts_with("int");
+        return s.contains(expected) || expected.starts_with("int") || expected.starts_with("uint");
     }
 }
 
@@ -444,6 +478,16 @@ void find_function_calls(void *gcc_data, void *user_data) {
                  * which message will be called at compile time, but so far it's only
                  * ever been one of these four.  Iterate over each and check.  They
                  * should all have the same arguments.
+                 */
+                check_message(stmt, "bundle");
+                check_message(stmt, "clone");
+                check_message(stmt, "group");
+                check_message(stmt, "primitive");
+
+            } else if (TREE_CODE(msg_tree) == SSA_NAME && message_from_var(msg_tree)) {
+                /* This is the above case, except the message name is given by some
+                 * variable.  We have to check each individually for all the same
+                 * reasons.
                  */
                 check_message(stmt, "bundle");
                 check_message(stmt, "clone");

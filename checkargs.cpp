@@ -42,7 +42,10 @@ msg_map_t msg_map;
 std::unordered_map<std::string, std::string> type_aliases = {
     { "struct GList *",             "GList *" },
     { "struct GHashTable *",        "GHashTable *" },
+    { "struct attr_update_data_t *","attr_update_data_t *" },
     { "crm_exit_e",                 "crm_exit_t" },
+    { "struct crm_time_t *",        "crm_time_t *" },
+    { "struct crm_time_period_t *", "crm_time_period_t *" },
     { "pcmk__fence_history",        "enum pcmk__fence_history" },
     { "pcmk_pacemakerd_state",      "enum pcmk_pacemakerd_state" },
     { "struct lrmd_list_t *",       "lrmd_list_t *" },

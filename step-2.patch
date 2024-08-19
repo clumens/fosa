@@ -1,8 +1,8 @@
 diff --git a/configure.ac b/configure.ac
-index 4b7d09f4e..dbe80b1f8 100644
+index 52adabafaa..7b32e79201 100644
 --- a/configure.ac
 +++ b/configure.ac
-@@ -2016,6 +2016,9 @@ AS_IF([test $enable_fatal_warnings -ne $DISABLED], [
+@@ -1953,6 +1953,9 @@ AS_IF([test $enable_fatal_warnings -ne $DISABLED], [
      AC_MSG_NOTICE([Enabling fatal compiler warnings])
      CFLAGS="$CFLAGS $WERROR"
  ])

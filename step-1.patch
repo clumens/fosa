@@ -7,7 +7,7 @@ index 52adabafaa..f18094614f 100644
      CFLAGS="$CFLAGS $WERROR"
  ])
 +
-+CFLAGS="$CFLAGS -DPCMK__WITH_ATTRIBUTE_OUTPUT_ARGS -fplugin=/home/clumens/src/fosa/findmessages.so -fplugin-arg-findmessages-store=/home/clumens/src/pacemaker/fosa-store.txt"
++CFLAGS="$CFLAGS -DPCMK__WITH_ATTRIBUTE_OUTPUT_ARGS -fplugin=\$(top_builddir)/../fosa/findmessages.so -fplugin-arg-findmessages-store=\$(top_builddir)/fosa-store.txt"
 +
  AC_SUBST(CFLAGS)
  

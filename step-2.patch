@@ -7,7 +7,7 @@ index 52adabafaa..7b32e79201 100644
      CFLAGS="$CFLAGS $WERROR"
  ])
 +
-+CFLAGS="$CFLAGS -fplugin=/home/clumens/src/fosa/checkargs.so -fplugin-arg-checkargs-store=/home/clumens/src/pacemaker/fosa-store.txt"
++CFLAGS="$CFLAGS -fplugin=\$(top_builddir)/../fosa/checkargs.so -fplugin-arg-checkargs-store=\$(top_builddir)/fosa-store.txt"
 +
  AC_SUBST(CFLAGS)
  

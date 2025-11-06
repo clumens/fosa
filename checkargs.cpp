@@ -44,6 +44,7 @@ std::unordered_map<std::string, std::string> type_aliases = {
     { "struct GHashTable *",        "GHashTable *" },
     { "struct attr_update_data_t *","attr_update_data_t *" },
     { "crm_exit_e",                 "crm_exit_t" },
+    { "unsigned int",               "crm_exit_t" },
     { "struct crm_time_t *",        "crm_time_t *" },
     { "struct crm_time_period_t *", "crm_time_period_t *" },
     { "pcmk__fence_history",        "enum pcmk__fence_history" },
@@ -60,6 +61,7 @@ std::unordered_map<std::string, std::string> type_aliases = {
     { "struct stonith_history_t *", "stonith_history_t *" },
     { "struct xmlNode *",           "xmlNode *" },
     { "long long unsigned int",     "unsigned long long int" },
+    { "xmlChar *",                  "char *" },
 };
 
 std::string print_tree_to_str(tree t) {
@@ -212,7 +214,11 @@ bool is_void_pointer(tree t) {
 }
 
 bool weird_enums_match(std::string expected, std::string got) {
-    std::set<std::string> s = {"enum shadow_disp_flags", "enum pcmk__fence_history"};
+    std::set<std::string> s = {
+        "enum pcmk_pacemakerd_state",
+        "enum pcmk__fence_history",
+        "enum shadow_disp_flags",
+    };
 
     if (got != "int" ) {
         return false;
@@ -243,7 +249,7 @@ bool types_match(std::string expected_ty, std::string got_ty) {
         if (expected_ty == aliased_got_ty) {
             return true;
 
-        } else if (expected_bool_got_int(expected_ty, aliased_got_ty)) {
+        } else if (expected_bool_got_int(expected_ty, aliased_got_ty) || expected_bool_got_int(expected_ty, got_ty)) {
             /* Getting an int when we expect a bool is fine. */
             return true;
 

@@ -195,11 +195,11 @@ bool expected_time_t_got_int(std::string expected, std::string got) {
 
 bool integer_types_match(std::string expected, tree got) {
     if (TYPE_UNSIGNED(got)) {
-        std::set<std::string> s = {"unsigned int", "unsigned long", "unsigned long long", "guint"};
+        std::set<std::string> s = {"unsigned int", "unsigned long", "unsigned long long"};
 
         return s.contains(expected) || expected.starts_with("uint");
     } else {
-        std::set<std::string> s = {"int", "long", "long long", "gint"};
+        std::set<std::string> s = {"int", "long", "long long"};
 
         return s.contains(expected) || expected.starts_with("int") || expected.starts_with("uint");
     }
